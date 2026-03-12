@@ -1,6 +1,23 @@
-USER_AGENT ="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.5993.118 Safari/537.36"
+USER_AGENT = (
+    "MultimodalSearchBot/0.1 "
+    "(academic research; contact: lalitramanmishra@gmail.com)"
+)
+
 
 TIMEOUT = 15
-MAX_CONCURRENT = 5
+MAX_CONCURRENT = 10
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
-base_urls=["https://en.wikipedia.org/wiki/Web_crawler"]
+base_urls=["https://en.wikipedia.org/wiki/Kallang_Field"]
+BLOCK_KEYWORDS = [
+    "icon",
+    "logo",
+    "sprite",
+    "favicon",
+    "thumb",
+    "avatar",
+    "badge",
+    "ads",
+    "banner"
+]
+
+max_depth=10

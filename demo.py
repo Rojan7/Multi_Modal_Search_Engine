@@ -5,14 +5,14 @@ import asyncio
 from src.components.data_ingestion.crawler import WebCrawler
 
 if __name__ == "__main__":
-    seed_urls = ["https://www.wikipedia.org"]
+    seed_urls = ["https://en.wikipedia.org/wiki/War"]
     crawler = WebCrawler(seed_urls)
     text_data, image_data = asyncio.run(crawler.run())
     print(f"Text docs: {len(text_data)}, Images: {len(image_data)}")
 
-from src.logger import logger
-from src.exception import MyException
-import sys
+# from src.logger import logger
+# from src.exception import MyException
+# import sys
 
 # try:
 #     a = 1+'Z'
