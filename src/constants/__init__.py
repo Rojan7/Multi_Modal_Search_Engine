@@ -2,6 +2,11 @@ USER_AGENT = (
     "MultimodalSearchBot/0.1 "
     "(academic research; contact: lalitramanmishra@gmail.com)"
 )
+headers = {
+    "User-Agent": "Mozilla/5.0",
+    "Referer": "https://www.daraz.com.np/"
+}
+
 
 
 TIMEOUT = 15

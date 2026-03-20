@@ -12,7 +12,7 @@ import hashlib
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 from pathlib import Path
-from src.constants import USER_AGENT, TIMEOUT, IMAGE_EXTENSIONS,MAX_CONCURRENT,base_urls,BLOCK_KEYWORDS, max_depth
+from src.constants import USER_AGENT, TIMEOUT, IMAGE_EXTENSIONS,MAX_CONCURRENT,base_urls,BLOCK_KEYWORDS, max_depth,headers
 from src.exception import MyException
 from src.logger import logger
 import sys
@@ -62,7 +62,7 @@ class WebCrawler:
             except aiohttp.ClientError as e:
                 logger.warning(f"client error while fetching error {url}")
             except Exception as e:
-                logger.error("Error while fethching url {url}")
+                logger.error(f"Error while fethching url {url}")
         return None, None
 
     async def download_image_text(self, session, url,text_):
@@ -70,14 +70,16 @@ class WebCrawler:
         async with self.sem:
             try:
                 logger.debug(f"Downloading image: {url}")
-                async with session.get(url, timeout=TIMEOUT) as resp:
+                async with session.get(url,headers=headers, timeout=TIMEOUT) as resp:
                     if resp.status == 200:
                         img_bytes = await resp.read()
-                        fname_img = url_hash(url) + Path(url).suffix
+                        ext = Path(url).suffix or ".jpg"
+                        fname_img= url_hash(url) + ext
                         fname_cap = url_hash(url) + ".txt"
                         path_img = self.output_dir / "images" / fname_img
                         path_caption=self.output_dir / "captions" / fname_cap
                         path_img.parent.mkdir(parents=True,exist_ok=True)
+                        path_caption.parent.mkdir(parents=True,exist_ok=True)
                         path_img.write_bytes(img_bytes)
                         path_caption.write_text(text_ or "",encoding="utf-8")
                         return {
@@ -99,7 +101,7 @@ class WebCrawler:
     async def crawl_page(self, session, url,depth):
 
         logger.debug("Entered crawl_pages method of class WebCrawller")
-        if url in self.visited and depth > self.max_depth:
+        if url in self.visited or depth > self.max_depth:
             logger.debug(f"Already visited: {url}")
             return None, [], []
 
@@ -120,11 +122,11 @@ class WebCrawler:
 
             # Extract full page text
             text = soup.get_text(" ", strip=True)
-            text_meta = {
-                "url": url,
-                "text": text,
-                "type": "text",
-            }
+            # text_meta = {
+            #     "url": url,
+            #     "text": text,
+            #     "type": "text",
+            # }
 
       
             images = []
@@ -172,7 +174,7 @@ class WebCrawler:
                 else:
                     continue
 
-            return text_meta, images, page_urls
+            return  images, page_urls
 
         except Exception as e:
             raise MyException(e, sys)
@@ -197,10 +199,7 @@ class WebCrawler:
                     if url in self.visited:
                         continue
 
-                    text_meta, images, page_urls = await self.crawl_page(session, url, depth) # ya nira caption na vaako ni huna sakxa
-
-                    if text_meta:
-                        all_text.append(text_meta)
+                    images, page_urls = await self.crawl_page(session, url, depth) # ya nira caption na vaako ni huna sakxa
 
                     all_images.extend(images)
 
@@ -211,7 +210,9 @@ class WebCrawler:
 
                         # Domain restriction
                         if parsed_seed in parsed_link:
-                            queue.append((link, depth + 1))
+                            if link not in self.visited and depth + 1 <= self.max_depth:
+                            
+                                queue.append((link, depth + 1))
 
                 # Download images
                 img_tasks = [self.download_image_text(session, img["url"],img["caption"]) for img in all_images]
@@ -225,7 +226,7 @@ class WebCrawler:
                             "url": meta["url"],
                             "caption": meta["caption"],
                             "page_url": meta["page_url"],
-                            "local_path": downloaded["path"],
+                            "local_path": downloaded["path_img"],
                             "type": "image"
                         })
 

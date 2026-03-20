@@ -5,7 +5,8 @@ import asyncio
 from src.components.data_ingestion.crawler import WebCrawler
 
 if __name__ == "__main__":
-    seed_urls = ["https://en.wikipedia.org/wiki/War"]
+    seed_urls = ["https://www.alibaba.com/?from=ugclickserver&isSpider=true"]
+    
     crawler = WebCrawler(seed_urls)
     text_data, image_data = asyncio.run(crawler.run())
     print(f"Text docs: {len(text_data)}, Images: {len(image_data)}")
