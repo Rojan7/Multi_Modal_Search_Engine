@@ -51,21 +51,21 @@ class WebCrawler:
         async with self.sem: #concept of semaphore to liimit the maximum requests in event loop
 
             try:
-                logger.debug(f"Fetching URL: {url}")
+                logger.debug(f"Fetching from URL: {url}")
                 async with session.get(url, timeout=TIMEOUT) as resp:
                     if resp.status == 200:
                         return await resp.text(), resp.headers.get("Content-Type", "")
                     else:
                         logger.debug(f"Non-200 status {resp.status} for {url}")
             except asyncio.TimeoutError as e:
-                raise MyException(e,sys)
+                logger.warning(f"time out error while fetching {url}")
             except aiohttp.ClientError as e:
-                raise MyException(e,sys)
+                logger.warning(f"client error while fetching error {url}")
             except Exception as e:
-                raise MyException(e,sys)
+                logger.error("Error while fethching url {url}")
         return None, None
 
-    async def download_image(self, session, url):
+    async def download_image_text(self, session, url,text_):
         logger.debug("Entered download_image method of class WebCrawller")
         async with self.sem:
             try:
@@ -73,13 +73,17 @@ class WebCrawler:
                 async with session.get(url, timeout=TIMEOUT) as resp:
                     if resp.status == 200:
                         img_bytes = await resp.read()
-                        fname = url_hash(url) + Path(url).suffix
-                        path = self.output_dir / "images" / fname
-                        path.parent.mkdir(parents=True,exist_ok=True)
-                        path.write_bytes(img_bytes)
+                        fname_img = url_hash(url) + Path(url).suffix
+                        fname_cap = url_hash(url) + ".txt"
+                        path_img = self.output_dir / "images" / fname_img
+                        path_caption=self.output_dir / "captions" / fname_cap
+                        path_img.parent.mkdir(parents=True,exist_ok=True)
+                        path_img.write_bytes(img_bytes)
+                        path_caption.write_text(text_ or "",encoding="utf-8")
                         return {
                             "url": url,
-                            "path": str(path),
+                            "path_img": str(path_img),
+                            "path_caption":str(path_caption)
                         }
                     else:
                         logger.debug(f"Image download failed ({resp.status}) for {url}")
@@ -95,7 +99,7 @@ class WebCrawler:
     async def crawl_page(self, session, url,depth):
 
         logger.debug("Entered crawl_pages method of class WebCrawller")
-        if url in self.visited or depth>max_depth:
+        if url in self.visited and depth > self.max_depth:
             logger.debug(f"Already visited: {url}")
             return None, [], []
 
@@ -165,6 +169,8 @@ class WebCrawler:
                         "page_url": url,
                         "type": "image"
                     })
+                else:
+                    continue
 
             return text_meta, images, page_urls
 
@@ -191,7 +197,7 @@ class WebCrawler:
                     if url in self.visited:
                         continue
 
-                    text_meta, images, page_urls = await self.crawl_page(session, url, depth)
+                    text_meta, images, page_urls = await self.crawl_page(session, url, depth) # ya nira caption na vaako ni huna sakxa
 
                     if text_meta:
                         all_text.append(text_meta)
@@ -208,7 +214,7 @@ class WebCrawler:
                             queue.append((link, depth + 1))
 
                 # Download images
-                img_tasks = [self.download_image(session, img["url"]) for img in all_images]
+                img_tasks = [self.download_image_text(session, img["url"],img["caption"]) for img in all_images]
                 img_meta = await asyncio.gather(*img_tasks)
 
                 final_images = []
