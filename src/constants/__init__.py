@@ -1,3 +1,4 @@
+#Data Extractor
 USER_AGENT = (
     "MultimodalSearchBot/0.1 "
     "(academic research; contact: lalitramanmishra@gmail.com)"
@@ -26,3 +27,15 @@ BLOCK_KEYWORDS = [
 ]
 
 max_depth=10
+
+#Training Pipeline
+PIPELINE_NAME: str = ""
+ARTIFACT_DIR: str = "artifact"
+
+#Data Extractor
+EXTRACTED_DIR_NAME : str = "Extracted_data_from_crwaling"
+
+
+#Load model
+MODEL_URL :str= "openai/clip-vit-base-patch32"
+

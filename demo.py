@@ -2,14 +2,14 @@ from src.logger import logger
 from src.exception import MyException
 import sys
 import asyncio
-from src.components.data_ingestion.crawler import WebCrawler
+from src.components.data_extract import WebCrawler
 
 if __name__ == "__main__":
     seed_urls = ["https://www.alibaba.com/?from=ugclickserver&isSpider=true"]
     
     crawler = WebCrawler(seed_urls)
-    text_data, image_data = asyncio.run(crawler.run())
-    print(f"Text docs: {len(text_data)}, Images: {len(image_data)}")
+    results = asyncio.run(crawler.run())
+  
 
 # from src.logger import logger
 # from src.exception import MyException

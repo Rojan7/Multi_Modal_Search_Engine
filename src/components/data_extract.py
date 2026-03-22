@@ -9,12 +9,15 @@ Crawler module for Multimodal Search Engine
 import asyncio
 import aiohttp
 import hashlib
+from pathlib import Path
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 from pathlib import Path
 from src.constants import USER_AGENT, TIMEOUT, IMAGE_EXTENSIONS,MAX_CONCURRENT,base_urls,BLOCK_KEYWORDS, max_depth,headers
 from src.exception import MyException
 from src.logger import logger
+from src.entity.config_entity import data_extract_config
+from src.entity.artifact_entity import DataExtractorArtifact
 import sys
 
 
@@ -39,11 +42,11 @@ def is_image(url: str) -> bool:
 class WebCrawler:
     def __init__(self, base_urls: list[str], output_dir="data/raw"):
         self.base_urls = base_urls
-        self.output_dir = Path(output_dir)
-        self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.output_dir = Path(data_extract_config.data_extract_output_dir)
         self.visited = set()
         self.sem = asyncio.Semaphore(MAX_CONCURRENT)
         self.max_depth=max_depth
+
         
 
     async def fetch(self, session: aiohttp.ClientSession, url: str):
@@ -178,7 +181,7 @@ class WebCrawler:
         except Exception as e:
             raise MyException(e, sys)
         
-    async def run(self):
+    async def run(self)->DataExtractorArtifact:
         logger.debug("Entered run method of class webcrawler")
 
         try:
@@ -188,7 +191,6 @@ class WebCrawler:
 
                 queue = [(url, 0) for url in self.base_urls]
 
-                all_text = []
                 all_images = []
 
                 while queue:
@@ -215,19 +217,19 @@ class WebCrawler:
                 img_tasks = [self.download_image_text(session, img["url"],img["caption"]) for img in all_images]
                 img_meta = await asyncio.gather(*img_tasks)
 
-                final_images = []
+                final_result = {}
 
                 for meta, downloaded in zip(all_images, img_meta):
                     if downloaded:
-                        final_images.append({
-                            "url": meta["url"],
-                            "caption": meta["caption"],
-                            "page_url": meta["page_url"],
-                            "local_path": downloaded["path_img"],
-                            "type": "image"
-                        })
+                        local_path_img= downloaded["path_img"]
+                        local_path_cap= downloaded["path_caption"]
+                        page_url=meta["page_url"]
+                        final_result[(local_path_img,local_path_cap)]=page_url
+                        
 
-            return all_text, final_images
+            return DataExtractorArtifact(
+                Img_to_url=final_result
+            )
 
         except Exception as e:
             raise MyException(e, sys)
