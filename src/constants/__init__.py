@@ -13,7 +13,7 @@ headers = {
 TIMEOUT = 15
 MAX_CONCURRENT = 10
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
-base_urls=["https://en.wikipedia.org/wiki/Kallang_Field"]
+base_urls=["https://www.daraz.com.np/#?"]
 BLOCK_KEYWORDS = [
     "icon",
     "logo",
@@ -38,4 +38,15 @@ EXTRACTED_DIR_NAME : str = "Extracted_data_from_crwaling"
 
 #Load model
 MODEL_URL :str= "openai/clip-vit-base-patch32"
+LOAD_MODEL_DIR : str = "Loaded_Model"
+USE_HALF :bool = False
+
+
+#Model trainer
+lr=5e-6
+batch_size=16
+epochs=3
+
+
+
 

@@ -16,6 +16,17 @@ training_pipeline_config: TrainingPipelineConfig=TrainingPipelineConfig()
 
 @dataclass 
 class data_extract_config:
-    data_extract_output_dir=os.path.join(training_pipeline_config.artifact_dir,EXTRACTED_DIR_NAME)
+    data_extract_output_dir:str=os.path.join(training_pipeline_config.artifact_dir,EXTRACTED_DIR_NAME)
+    
+@dataclass
+class model_loader_config:
+    model_dir:str=os.path.join(training_pipeline_config.artifact_dir,LOAD_MODEL_DIR,"CLIP_MODEL_UNTRAINED")
+    pro_dir:str=os.path.join(training_pipeline_config.artifact_dir,LOAD_MODEL_DIR, "PROC_DIR")
+    
+@dataclass
+class model_fine_tuning_config:
+    model_save_dir : str=os.path.join(training_pipeline_config.artifact_dir)
+    
+
     
     

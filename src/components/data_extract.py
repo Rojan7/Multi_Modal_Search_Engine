@@ -40,12 +40,13 @@ def is_image(url: str) -> bool:
 
 
 class WebCrawler:
-    def __init__(self, base_urls: list[str], output_dir="data/raw"):
+    def __init__(self,data_extract_config:data_extract_config):
         self.base_urls = base_urls
         self.output_dir = Path(data_extract_config.data_extract_output_dir)
         self.visited = set()
         self.sem = asyncio.Semaphore(MAX_CONCURRENT)
         self.max_depth=max_depth
+        self.data_extract_config=data_extract_config
 
         
 
@@ -228,6 +229,8 @@ class WebCrawler:
                         
 
             return DataExtractorArtifact(
+                image_dir=local_path_img,
+                caption_dir=local_path_cap,
                 Img_to_url=final_result
             )
 

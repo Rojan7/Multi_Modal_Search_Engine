@@ -2,14 +2,11 @@ from src.logger import logger
 from src.exception import MyException
 import sys
 import asyncio
-from src.components.data_extract import WebCrawler
+from src.pipline.training_pipeline import TrainingPipeline
 
 if __name__ == "__main__":
-    seed_urls = ["https://www.alibaba.com/?from=ugclickserver&isSpider=true"]
-    
-    crawler = WebCrawler(seed_urls)
-    results = asyncio.run(crawler.run())
-  
+    st=TrainingPipeline()
+    st.run_pipline()
 
 # from src.logger import logger
 # from src.exception import MyException
