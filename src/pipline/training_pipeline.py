@@ -38,7 +38,7 @@ class TrainingPipeline:
             model_loader=CLIPLOADER(self.model_loader_config,
                                     data_extractor_artifact)
             model_loader_artifact=model_loader.initiate_model_loading()
-            logger.info("initiate_model_loading method of class TrainPipeline")
+            logger.info("initiate_model_loading method of class TrainPipeline is sucessfull")
             return model_loader_artifact
         except Exception as e:
             raise MyException(e,sys)

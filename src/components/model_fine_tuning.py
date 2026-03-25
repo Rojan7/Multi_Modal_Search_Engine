@@ -6,6 +6,7 @@ from PIL import Image
 from tqdm import tqdm
 import sys
 import os
+from pathlib import Path
 from src.constants import epochs,lr,batch_size
 from src.logger import logger
 from src.exception import MyException
@@ -34,14 +35,14 @@ class CLIPFineTuner:
                  model_loader_artifact:ModelLoaderArtifact,
                  data_extract_artifact:DataExtractorArtifact):
         self.device = torch.device("mps" if torch.backends.mps.is_available() else "cpu" )
-        self.model=CLIPModel.from_pretrained(ModelLoaderArtifact.LoadedModelPath).to(self.device)
-        self.processor=CLIPProcessor.from_pretrained(ModelLoaderArtifact.LoadedModelPath)
+        self.model=CLIPModel.from_pretrained(model_loader_artifact.LoadedModelPath).to(self.device)
+        self.processor=CLIPProcessor.from_pretrained(model_loader_artifact.LoadedModelPath)
         self.lr = lr
         self.batch_size = batch_size
         self.epochs = epochs
         self.optimizer = optim.AdamW(self.model.parameters(), lr=self.lr)
        # self.loss_fn = nn.CosineEmbeddingLoss()  # CLIP uses cosine similarity
-        self.model_fine_tuner_config=model_fine_tuning_config
+        self.model_fine_tuner_config=model_fine_tuner_config
         self.model_loader_artifact=model_loader_artifact
         self.data_extract_artifact=data_extract_artifact
         
@@ -106,9 +107,19 @@ class CLIPFineTuner:
                 for batch in pbar:
                     batch = {k: v.to(self.device) for k, v in batch.items()}
 
-                    outputs = self.model(**batch)
-
-                    loss = outputs.loss   # CLIP’s  loss
+                    outputs = self.model(
+                                        input_ids=batch["input_ids"],
+                                         attention_mask=batch["attention_mask"],
+                                        pixel_values=batch["pixel_values"])
+                    
+                    image_features = outputs.image_embeds  # shape [batch, dim]
+                    text_features = outputs.text_embeds    # shape [batch, dim]
+                    logits_per_image = image_features @ text_features.T
+                    logits_per_text = text_features @ image_features.T
+                    labels = torch.arange(len(image_features), device=image_features.device)
+                    loss_img = nn.CrossEntropyLoss()(logits_per_image, labels)
+                    loss_txt = nn.CrossEntropyLoss()(logits_per_text, labels)
+                    loss = (loss_img + loss_txt) / 2
 
                     self.optimizer.zero_grad()
                     loss.backward()
@@ -130,7 +141,7 @@ class CLIPFineTuner:
         
     def initiate_model_fine_tuner(self):
         logger.info("Starting model fine-tuning pipeline")
-        try:
+        try:       
 
             data = self.load_image_caption_pairs()
 
@@ -144,7 +155,8 @@ class CLIPFineTuner:
 
             self.train(dataset)
 
-            model_save_path = model_fine_tuning_config.trained_model_path
+            model_save_path = Path(model_fine_tuning_config.trained_model_path)
+            model_save_path.parent.mkdir(parents=True, exist_ok=True)
             self.save_model(model_save_path)
 
             return {

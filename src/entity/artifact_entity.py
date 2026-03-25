@@ -9,7 +9,6 @@ class DataExtractorArtifact:
 @dataclass
 class ModelLoaderArtifact:
     LoadedModelPath : str 
-    LoadedProcPath :str
     
 @dataclass 
 class ModelFineTuningArtifact:

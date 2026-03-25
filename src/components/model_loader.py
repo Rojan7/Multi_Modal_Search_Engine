@@ -28,8 +28,9 @@ class CLIPLOADER:
             if self.use_half and self.device == "cuda":
                 self.model = self.model.half()
             self.model.eval()
-            self.model.save_pretrained(model_loader_config.model_dir)
-            self.processor.save_pretrained(model_loader_config.pro_dir)
+            save_path=model_loader_config.model_dir
+            self.model.save_pretrained(save_path)
+            self.processor.save_pretrained(save_path)
             logger.info("Model loaded and saved sucessfuly")
         except Exception as e:
             raise MyException(e,sys)
@@ -84,8 +85,8 @@ class CLIPLOADER:
         try:
             self.load_model()
             model_loader_artifact=ModelLoaderArtifact(
-                LoadedModelPath=model_loader_config.model_dir,
-                LoadedProcPath=model_loader_config.pro_dir
+                LoadedModelPath=model_loader_config.model_dir
+                
             )
             return model_loader_artifact
         except Exception as e:

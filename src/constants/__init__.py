@@ -13,7 +13,7 @@ headers = {
 TIMEOUT = 15
 MAX_CONCURRENT = 10
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
-base_urls=["https://www.daraz.com.np/#?"]
+base_urls=["https://www.alibaba.com/?from=ugclickserver&isSpider=true"]
 BLOCK_KEYWORDS = [
     "icon",
     "logo",
@@ -46,6 +46,7 @@ USE_HALF :bool = False
 lr=5e-6
 batch_size=16
 epochs=3
+train_model_dir="Fine_Tuned_Model"
 
 
 

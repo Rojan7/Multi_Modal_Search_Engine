@@ -229,8 +229,8 @@ class WebCrawler:
                         
 
             return DataExtractorArtifact(
-                image_dir=local_path_img,
-                caption_dir=local_path_cap,
+                image_dir=str(self.output_dir / "images"),
+                caption_dir=str(self.output_dir / "captions"),
                 Img_to_url=final_result
             )
 

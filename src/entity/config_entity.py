@@ -21,10 +21,11 @@ class data_extract_config:
 @dataclass
 class model_loader_config:
     model_dir:str=os.path.join(training_pipeline_config.artifact_dir,LOAD_MODEL_DIR,"CLIP_MODEL_UNTRAINED")
-    pro_dir:str=os.path.join(training_pipeline_config.artifact_dir,LOAD_MODEL_DIR, "PROC_DIR")
+
     
 @dataclass
 class model_fine_tuning_config:
+    trained_model_path: str=os.path.join(training_pipeline_config.artifact_dir,train_model_dir,"Trained_Model")
     model_save_dir : str=os.path.join(training_pipeline_config.artifact_dir)
     
 
