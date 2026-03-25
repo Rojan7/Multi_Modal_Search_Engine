@@ -13,7 +13,7 @@ headers = {
 TIMEOUT = 15
 MAX_CONCURRENT = 10
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
-base_urls=["https://www.alibaba.com/?from=ugclickserver&isSpider=true"]
+base_urls=["https://www.daraz.com.np/#?"]
 BLOCK_KEYWORDS = [
     "icon",
     "logo",
