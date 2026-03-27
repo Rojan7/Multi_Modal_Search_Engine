@@ -16,4 +16,12 @@ class ModelFineTuningArtifact:
     Status:str
     Num_Samples:str
     
+@dataclass
+class EmbeddingGenerationArtifact:
+    Embeddings_path:str
+    status:str
     
+@dataclass
+class FaissIndexingArtifact:
+    Faiss_path:str
+    status:str

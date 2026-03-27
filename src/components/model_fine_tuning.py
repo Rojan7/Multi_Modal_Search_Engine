@@ -12,7 +12,7 @@ from src.logger import logger
 from src.exception import MyException
 from src.components.model_loader import CLIPLOADER
 from src.entity.config_entity import model_fine_tuning_config
-from src.entity.artifact_entity import ModelLoaderArtifact,DataExtractorArtifact
+from src.entity.artifact_entity import ModelLoaderArtifact,DataExtractorArtifact,ModelFineTuningArtifact
 
 class ImageCaptionDataset(Dataset):
     def __init__(self,data_list,processor, img_size=(224,224)):
@@ -134,10 +134,11 @@ class CLIPFineTuner:
     def save_model(self, path):
         logger.info("Saving Model")
         try:
-            torch.save(self.model.state_dict(), path)
+            self.model.save_pretrained(path)
+            self.processor.save_pretrained(path)
             logger.info(f"Model saved at {path}")
         except Exception as e:
-            raise MyException(e,sys)
+            raise MyException(e, sys)
         
     def initiate_model_fine_tuner(self):
         logger.info("Starting model fine-tuning pipeline")
@@ -155,15 +156,16 @@ class CLIPFineTuner:
 
             self.train(dataset)
 
-            model_save_path = Path(model_fine_tuning_config.trained_model_path)
-            model_save_path.parent.mkdir(parents=True, exist_ok=True)
-            self.save_model(model_save_path)
+            model_save_dir = Path(self.model_fine_tuner_config.trained_model_dir)
+            model_save_dir.mkdir(parents=True, exist_ok=True)
 
-            return {
-                "model_path": model_save_path,
-                "num_samples": len(data),
-                "status": "success"
-            }
+            self.save_model(model_save_dir)
+
+            return ModelFineTuningArtifact(
+                model_save_dir,
+                 "success",
+                 len(data)
+                )
 
         except Exception as e:
             raise MyException(e, sys)

@@ -5,19 +5,28 @@ from src.logger import logger
 from src.components.data_extract import WebCrawler
 from src.components.model_loader import CLIPLOADER
 from src.components.model_fine_tuning import CLIPFineTuner,ImageCaptionDataset
+from src.components.embeddings_generations import EmbeddingGeneration
+from src.components.Faiss import FAISSIndexBuilder
 
 from src.entity.config_entity import (data_extract_config,
                                       model_loader_config,
-                                      model_fine_tuning_config)
+                                      model_fine_tuning_config,
+                                      embeddings_generations_config,
+                                      Faiss_config)
 
 from src.entity.artifact_entity import( DataExtractorArtifact,
                                         ModelFineTuningArtifact,
-                                        ModelLoaderArtifact)
+                                        ModelLoaderArtifact,
+                                        ModelFineTuningArtifact,
+                                        EmbeddingGenerationArtifact,
+                                        FaissIndexingArtifact)
 class TrainingPipeline:
     def __init__(self):
         self.data_extract_config=data_extract_config()
         self.model_loader_config=model_loader_config()
         self.model_fine_tuning_config=model_fine_tuning_config()
+        self.embeddings_generations_config=embeddings_generations_config()
+        self.Faiss_config=Faiss_config()
         
         # self.data_extract_artifact=DataExtractorArtifact()
         # self.model_fine_tuning_artifact=ModelFineTuningArtifact()
@@ -53,11 +62,41 @@ class TrainingPipeline:
             return model_train_artifact
         except Exception as e:
             raise MyException(e,sys)
+        
+    def intiate_embedding_generation(self,
+                                     model_training_artifact:ModelFineTuningArtifact,
+                                     data_extractor_artifact:DataExtractorArtifact
+                                     ):
+        try:
+            logger.info("Entered initaite_embedding_generation")
+            embed_gen=EmbeddingGeneration(
+                self.embeddings_generations_config,data_extractor_artifact,
+                model_training_artifact
+            )
+            embeddings_artifact=embed_gen.initiate_embeddings_generations()
+            return embeddings_artifact
+        except Exception as e:
+            raise MyException(e,sys)
+        
+    def initiate_index_building(self,
+                                embeddings_generations_artifact:EmbeddingGenerationArtifact):
+        try:
+            logger.info("Entered intiate_index_building method of class TrainPipeline")
+            index_builder=FAISSIndexBuilder(
+                                            embeddings_generations_artifact)
+            faiss_artifact=index_builder.initate_Faiss_index_building()
+            logger.info("Index building is successfull")
+            return faiss_artifact
+        except Exception as e:
+            raise MyException(e,sys)
     
     def run_pipline(self):
         data_extract_artifact=self.initiate_crawlling()
         modal_loader_artifact=self.intiate_model_loading(data_extract_artifact)
-        self.initiate_model_training(modal_loader_artifact,data_extract_artifact)
+        trained_model_artifact=self.initiate_model_training(modal_loader_artifact,data_extract_artifact)
+        embedding_generation_artifact=self.intiate_embedding_generation(trained_model_artifact,data_extract_artifact)
+        faiss_index_builder_artifact=self.initiate_index_building(embedding_generation_artifact)
+        
         
 
         

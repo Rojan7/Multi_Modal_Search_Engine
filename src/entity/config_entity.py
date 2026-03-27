@@ -25,9 +25,24 @@ class model_loader_config:
     
 @dataclass
 class model_fine_tuning_config:
-    trained_model_path: str=os.path.join(training_pipeline_config.artifact_dir,train_model_dir,"Trained_Model")
-    model_save_dir : str=os.path.join(training_pipeline_config.artifact_dir)
+    trained_model_dir: str = os.path.join(
+        training_pipeline_config.artifact_dir,
+        train_model_dir,
+        "Fine_Tuned_Model"
+    )
     
+    model_save_dir: str = os.path.join(
+        training_pipeline_config.artifact_dir
+    )
 
     
+@dataclass
+class embeddings_generations_config:
+    embeddings_path:str = os.path.join(training_pipeline_config.artifact_dir,embeddings_dir,"Embeddings")
+    Mapping_path:str = os.path.join(training_pipeline_config.artifact_dir,embeddings_dir,"Mappnig")
+
+
+@dataclass
+class Faiss_config:
+    index_path:str = os.path.join(training_pipeline_config.artifact_dir,embeddings_dir,"index")
     
