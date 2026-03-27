@@ -89,9 +89,11 @@ class EmbeddingGeneration:
     def save_mappings(self,mapping):
         try:
             logger.info("Savign mappings")
-            with open(self.embeddings_generation_config.Mapping_path,"w") as f:
+            path=self.embeddings_generation_config.Mapping_path
+            with open(path,"w") as f:
                 json.dump(mapping,f)
                 
+            return path
         except Exception as e:
             raise MyException(e,sys)
         
@@ -99,11 +101,13 @@ class EmbeddingGeneration:
         try:
             logger.info("Intiating Embedding Generations")
             mappings,embeddings_path=self.generate_embeddings()
-            self.save_mappings(mappings)
+            mapping_path=self.save_mappings(mappings)
             
             return EmbeddingGenerationArtifact(
                 embeddings_path,
-                "Successfull"
+                "Successfull",
+                mapping_path
+                
                 
             )
         except Exception as e:

@@ -46,3 +46,7 @@ class embeddings_generations_config:
 class Faiss_config:
     index_path:str = os.path.join(training_pipeline_config.artifact_dir,embeddings_dir,"index")
     
+@dataclass
+class Retriver_Config:
+    
+    

@@ -20,6 +20,7 @@ class ModelFineTuningArtifact:
 class EmbeddingGenerationArtifact:
     Embeddings_path:str
     status:str
+    mapping_path:str
     
 @dataclass
 class FaissIndexingArtifact:
