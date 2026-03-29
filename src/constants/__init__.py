@@ -57,5 +57,8 @@ REGION_NAME = "us-east-1"
 
 MODEL_BUCKET_NAME = "multimodal-proj"
 MODEL_PUSHER_S3_KEY = "model-registry"
-MODEL_FILE_NAME = "model.pkl"
+MODEL_FILE_NAME = "Model_s"
 
+
+APP_HOST = "0.0.0.0"
+APP_PORT = 8000

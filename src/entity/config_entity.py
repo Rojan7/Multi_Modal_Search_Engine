@@ -59,7 +59,7 @@ class ModelPusherConfig:
     
     
 @dataclass
-class MultimodalProj:
+class MultimodalProjConfig:
     model_file_path: str = MODEL_FILE_NAME
     model_bucket_name: str = MODEL_BUCKET_NAME
     

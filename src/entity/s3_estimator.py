@@ -3,6 +3,7 @@ from src.exception import MyException
 from src.components.Retriver import Retriever
 from src.logger import logger
 import sys
+import os
 
 
 class Proj1Estimator:
@@ -14,6 +15,8 @@ class Proj1Estimator:
         self.bucket_name = bucket_name
         self.s3 = SimpleStorageService()
         self.model_path = model_path
+    
+
 
 
     def is_model_present(self, model_path):
@@ -40,21 +43,20 @@ class Proj1Estimator:
     def predict(
         self,
         query,
-        faiss_path,
-        mapping_path,
-        model_path,
         top_k=5
     ):
         
 
         try:
             logger.info("Starting prediction using Retriever")
+            faiss_path = os.path.join(self.model_path, "faiss_index","index.bin")
+            mapping_path = os.path.join(self.model_path, "mapping.json")
 
             # Initialize Retriever (loads model + FAISS + mapping)
             retriever = Retriever(
                 Faiss_path=faiss_path,
                 mapping_path=mapping_path,
-                Model_Path=model_path
+                Model_Path=self.model_path
             )
 
             # Perform search
