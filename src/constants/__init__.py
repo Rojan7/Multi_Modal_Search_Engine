@@ -51,6 +51,11 @@ train_model_dir="Fine_Tuned_Model"
 #Embedding generations
 embeddings_dir="Embeddings"
 
+AWS_ACCESS_KEY_ID_ENV_KEY = "AWS_ACCESS_KEY_ID"
+AWS_SECRET_ACCESS_KEY_ENV_KEY = "AWS_SECRET_ACCESS_KEY"
+REGION_NAME = "us-east-1"
 
-
+MODEL_BUCKET_NAME = "multimodal-proj"
+MODEL_PUSHER_S3_KEY = "model-registry"
+MODEL_FILE_NAME = "model.pkl"
 

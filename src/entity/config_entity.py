@@ -46,7 +46,20 @@ class embeddings_generations_config:
 class Faiss_config:
     index_path:str = os.path.join(training_pipeline_config.artifact_dir,embeddings_dir,"index")
     
-@dataclass
-class Retriver_Config:
+# @dataclass
+# class Retriver_Config:
     
+@dataclass
+class ModelPusherConfig:
+    bucket_name: str = MODEL_BUCKET_NAME
+    s3_model_key_path: str = MODEL_FILE_NAME
+    
+    # faiss_index_path: str
+    # mapping_path: str
+    
+    
+@dataclass
+class MultimodalProj:
+    model_file_path: str = MODEL_FILE_NAME
+    model_bucket_name: str = MODEL_BUCKET_NAME
     

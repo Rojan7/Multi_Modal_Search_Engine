@@ -26,3 +26,8 @@ class EmbeddingGenerationArtifact:
 class FaissIndexingArtifact:
     Faiss_path:str
     status:str
+    
+@dataclass
+class ModelPusherArtifact:
+    bucket_name: str
+    s3_model_path: str

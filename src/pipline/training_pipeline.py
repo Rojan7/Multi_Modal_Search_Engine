@@ -7,19 +7,23 @@ from src.components.model_loader import CLIPLOADER
 from src.components.model_fine_tuning import CLIPFineTuner,ImageCaptionDataset
 from src.components.embeddings_generations import EmbeddingGeneration
 from src.components.Faiss import FAISSIndexBuilder
+from src.components.Retriver import Retriever
+from src.components.model_pusher import ModelPusher
 
 from src.entity.config_entity import (data_extract_config,
                                       model_loader_config,
                                       model_fine_tuning_config,
                                       embeddings_generations_config,
-                                      Faiss_config)
+                                      Faiss_config,
+                                      ModelPusherConfig)
 
 from src.entity.artifact_entity import( DataExtractorArtifact,
                                         ModelFineTuningArtifact,
                                         ModelLoaderArtifact,
                                         ModelFineTuningArtifact,
                                         EmbeddingGenerationArtifact,
-                                        FaissIndexingArtifact)
+                                        FaissIndexingArtifact,
+                                        ModelPusherArtifact)
 class TrainingPipeline:
     def __init__(self):
         self.data_extract_config=data_extract_config()
@@ -27,6 +31,8 @@ class TrainingPipeline:
         self.model_fine_tuning_config=model_fine_tuning_config()
         self.embeddings_generations_config=embeddings_generations_config()
         self.Faiss_config=Faiss_config()
+
+        self.ModelPusherConfig=ModelPusherConfig()
         
         # self.data_extract_artifact=DataExtractorArtifact()
         # self.model_fine_tuning_artifact=ModelFineTuningArtifact()
@@ -89,6 +95,19 @@ class TrainingPipeline:
             return faiss_artifact
         except Exception as e:
             raise MyException(e,sys)
+        
+    def initiate_model_pushing(self,model_fine_tuning_artifact,faiss_artifact,embedding_artifact):
+                               
+        try:
+            logger.info("Initiating Model pushing")
+            model_pusher = ModelPusher(
+                                    model_pusher_config=self.ModelPusherConfig
+                                    )
+            model_pusher_artifact = model_pusher.initiate_model_pusher(model_fine_tuning_artifact,
+                                                                       faiss_artifact,embedding_artifact)
+            return model_pusher_artifact
+        except Exception as e:
+            raise MyException(e,sys)
     
     def run_pipline(self):
         data_extract_artifact=self.initiate_crawlling()
@@ -96,6 +115,7 @@ class TrainingPipeline:
         trained_model_artifact=self.initiate_model_training(modal_loader_artifact,data_extract_artifact)
         embedding_generation_artifact=self.intiate_embedding_generation(trained_model_artifact,data_extract_artifact)
         faiss_index_builder_artifact=self.initiate_index_building(embedding_generation_artifact)
+        model_pusher_artifact=self.initiate_model_pushing(trained_model_artifact,faiss_index_builder_artifact,embedding_generation_artifact)
         
         
 
