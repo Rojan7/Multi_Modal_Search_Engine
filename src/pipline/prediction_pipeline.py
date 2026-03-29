@@ -1,42 +1,77 @@
 import sys
-from src.entity.config_entity import MultimodalProjConfig
-from src.entity.s3_estimator import Proj1Estimator
+from pathlib import Path
+
+from src.components.Retriver import Retriever
 from src.exception import MyException
 from src.logger import logger
-from PIL import Images
 
 
-class InputData:
-    def __init__(self,Query):
-        try:
-            self.Query=Query
-        except Exception as e:
-            raise MyException(e,sys)
-        
 class MultimodalSearch:
-    def __init__(self, multimodal_config : MultimodalProjConfig=MultimodalProjConfig()) -> None:
-        """
-        :param prediction_pipeline_config: Configuration for prediction the value
-        """
+    def __init__(self, artifact_root: str = "artifact") -> None:
         try:
-            self.prediction_pipeline_config = multimodal_config
+            self.artifact_root = Path(artifact_root)
         except Exception as e:
             raise MyException(e, sys)
 
-    def predict(self, Query) -> str:
-        """
-        This is the method of Multimodal search
-        Returns: Prediction in string format
-        """
+    def _latest_artifact_dir(self) -> Path:
+        if not self.artifact_root.exists():
+            raise FileNotFoundError("The artifact directory does not exist yet. Run training first.")
+
+        artifact_dirs = sorted(
+            [path for path in self.artifact_root.iterdir() if path.is_dir()],
+            reverse=True,
+        )
+        if not artifact_dirs:
+            raise FileNotFoundError("No training artifacts were found. Run the training pipeline first.")
+
+        return artifact_dirs[0]
+
+    @staticmethod
+    def _first_existing_path(candidates: list[Path], description: str) -> Path:
+        for candidate in candidates:
+            if candidate.exists():
+                return candidate
+        raise FileNotFoundError(
+            f"Missing {description}. Expected one of: {', '.join(str(path) for path in candidates)}"
+        )
+
+    def _resolve_assets(self) -> tuple[Path, Path, Path]:
+        artifact_dir = self._latest_artifact_dir()
+
+        model_path = self._first_existing_path(
+            [
+                artifact_dir / "Fine_Tuned_Model" / "Fine_Tuned_Model",
+                artifact_dir / "Fine_Tuned_Model" / "Trained_Model",
+                artifact_dir / "Loaded_Model" / "CLIP_MODEL_UNTRAINED",
+            ],
+            "model directory",
+        )
+        faiss_path = self._first_existing_path(
+            [
+                artifact_dir / "Embeddings" / "index",
+                artifact_dir / "index",
+            ],
+            "FAISS index",
+        )
+        mapping_path = self._first_existing_path(
+            [
+                artifact_dir / "Embeddings" / "Mappnig",
+                artifact_dir / "Embeddings" / "mapping.json",
+            ],
+            "mapping file",
+        )
+
+        return model_path, faiss_path, mapping_path
+
+    def predict(self, query, top_k: int = 5):
         try:
             logger.info("Entered predict method of MultimodalSearch class")
-            model = Proj1Estimator(
-                bucket_name=self.prediction_pipeline_config.model_bucket_name,
-                model_path=self.prediction_pipeline_config.model_file_path,
+            model_path, faiss_path, mapping_path = self._resolve_assets()
+            retriever = Retriever(
+                Faiss_path=faiss_path,
+                mapping_path=mapping_path,
+                Model_Path=model_path,
             )
-            result =  model.predict(Query)
-            
-            return result
-        
+            return retriever.predict(query, top_k=top_k)
         except Exception as e:
             raise MyException(e, sys)

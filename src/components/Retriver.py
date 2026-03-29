@@ -1,9 +1,7 @@
 import faiss
 import json
 import torch
-import numpy as np
 from src.utils.main_utils import load_clip_model
-from src.entity.artifact_entity import FaissIndexingArtifact,EmbeddingGenerationArtifact,ModelFineTuningArtifact
 from PIL import Image
 from src.logger import logger
 from src.exception import MyException
@@ -19,8 +17,7 @@ class Retriever:
         self.mapping_path = mapping_path
         self.faiss_path = Faiss_path
 
-        # FIX 1
-        self.index = faiss.read_index(self.faiss_path)
+        self.index = faiss.read_index(str(self.faiss_path))
 
         with open(self.mapping_path) as f:
             self.mapping = json.load(f)

@@ -1,8 +1,13 @@
 import logging
 import os
 from logging.handlers import RotatingFileHandler
-from from_root import from_root
 from datetime import datetime
+
+try:
+    from from_root import from_root
+except ImportError:
+    def from_root():
+        return os.getcwd()
 
 #constant for log configurations
 log_dir="logs"
