@@ -38,32 +38,31 @@ class Proj1Estimator:
             )
         except Exception as e:
             raise MyException(e, sys)
-
-
-    def predict(
-        self,
-        query,
-        top_k=5
-    ):
         
 
+
+    def predict(self, query, top_k=5):
         try:
             logger.info("Starting prediction using Retriever")
-            faiss_path = os.path.join(self.model_path, "faiss_index","index.bin")
-            mapping_path = os.path.join(self.model_path, "mapping.json")
 
-            # Initialize Retriever (loads model + FAISS + mapping)
+            # S3 paths
+            model_folder_key = self.model_path.rstrip("/") + "/"
+
+            faiss_key = f"{self.model_path}/faiss_index/index.bin"
+            mapping_key = f"{self.model_path}/mapping.json"       # S3 key
+
+            # Initialize Retriever with all 3 S3 inputs
             retriever = Retriever(
-                Faiss_path=faiss_path,
-                mapping_path=mapping_path,
-                Model_Path=self.model_path
+                s3_bucket=self.bucket_name,
+                model_folder_key=model_folder_key,
+                faiss_key=faiss_key,
+                mapping_key=mapping_key
             )
 
             # Perform search
             results = retriever.predict(query=query, top_k=top_k)
 
             logger.info("Prediction completed successfully")
-
             return results
 
         except Exception as e:

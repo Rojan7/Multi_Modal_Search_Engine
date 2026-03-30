@@ -1,41 +1,93 @@
 import faiss
 import json
 import torch
-import numpy as np
-from src.utils.main_utils import load_clip_model
-from src.entity.artifact_entity import FaissIndexingArtifact,EmbeddingGenerationArtifact,ModelFineTuningArtifact
+from transformers import CLIPProcessor, CLIPModel
 from PIL import Image
+import boto3
+import io
+import os
 from src.logger import logger
 from src.exception import MyException
+import tempfile
 import sys
-import os
 
 class Retriever:
-    def __init__(self, Faiss_path, mapping_path, Model_Path):
+    def __init__(self, s3_bucket, model_folder_key, faiss_key, mapping_key):
+        """
+        s3_bucket: str -> S3 bucket name
+        model_folder_key: str -> folder path of fine-tuned CLIP model in S3 (contains config.json, model.safetensors, processor_config.json)
+        faiss_key: str -> S3 path to FAISS index (.index file)
+        mapping_key: str -> S3 path to mapping JSON
+        """
+        try:
+            logger.info("Initializing Retriever from S3")
+            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        self.model_path = Model_Path
-        self.model, self.processor, self.device = load_clip_model(self.model_path)
+            # Load CLIP model + processor
+            self.model, self.processor = self._load_clip_model_s3(s3_bucket, model_folder_key)
 
-        self.mapping_path = mapping_path
-        self.faiss_path = Faiss_path
+            # Load FAISS index
+            self.index = self._load_faiss_index_s3(s3_bucket, faiss_key)
 
-        # FIX 1
-        self.index = faiss.read_index(self.faiss_path)
+            # Load mapping JSON
+            self.mapping = self._load_mapping_s3(s3_bucket, mapping_key)
 
-        with open(self.mapping_path) as f:
-            self.mapping = json.load(f)
+            logger.info("Retriever initialized successfully")
+
+        except Exception as e:
+            raise MyException(e, sys)
+
+    def _load_clip_model_s3(self, s3_bucket, model_folder_key):
+        """
+        Downloads model folder from S3 and loads CLIP model + processor
+        """
+        s3 = boto3.client('s3')
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            # download each file in the folder
+            # Here we assume the model folder contains: config.json, processor_config.json, model.safetensors
+            files_to_download = ["config.json", "processor_config.json", "model.safetensors", 
+                                 "tokenizer.json", "tokenizer_config.json"]
+            for f in files_to_download:
+                s3.download_file(s3_bucket, f"{model_folder_key}{f}", os.path.join(tmp_dir, f))
+
+            # Load model
+            model = CLIPModel.from_pretrained(tmp_dir).to(self.device)
+            processor = CLIPProcessor.from_pretrained(tmp_dir)
+            model.eval()
+        return model, processor
+
+    def _load_faiss_index_s3(self, s3_bucket, faiss_key):
+        """
+        Downloads FAISS index from S3 into memory
+        """
+        s3 = boto3.client('s3')
+        obj = s3.get_object(Bucket=s3_bucket, Key=faiss_key)
+        index_bytes = obj['Body'].read()
+        index = faiss.read_index(io.BytesIO(index_bytes))
+        return index
+
+    def _load_mapping_s3(self, s3_bucket, mapping_key):
+        """
+        Downloads mapping JSON from S3
+        """
+        s3 = boto3.client('s3')
+        obj = s3.get_object(Bucket=s3_bucket, Key=mapping_key)
+        mapping = json.loads(obj['Body'].read())
+        return mapping
 
     def predict(self, query, top_k=5):
+        """
+        query: str or PIL.Image.Image
+        top_k: number of results
+        """
         try:
             logger.info("Entered predict method")
 
             if isinstance(query, str) and not os.path.exists(query):
                 # TEXT QUERY
                 inputs = self.processor(text=[query], return_tensors="pt", padding=True).to(self.device)
-
                 with torch.no_grad():
                     emb = self.model.get_text_features(**inputs)
-
             else:
                 # IMAGE QUERY
                 if isinstance(query, str):
@@ -46,7 +98,6 @@ class Retriever:
                     image = Image.open(query).convert("RGB")
 
                 inputs = self.processor(images=image, return_tensors="pt").to(self.device)
-
                 with torch.no_grad():
                     emb = self.model.get_image_features(**inputs)
 
@@ -57,7 +108,7 @@ class Retriever:
             emb = emb.cpu().numpy().astype("float32")
             scores, indices = self.index.search(emb, top_k)
 
-            # Results
+            # Map results
             results = [
                 {
                     "url": self.mapping.get(str(i), self.mapping.get(i)),

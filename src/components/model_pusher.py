@@ -39,24 +39,24 @@ class ModelPusher:
 
             logger.info("Uploading FAISS index...")
 
-            self.s3.upload_folder(
-                folder_path=faiss_artifact.Faiss_path,
-                bucket_name=self.model_pusher_config.bucket_name,
-                s3_prefix=os.path.join(self.model_pusher_config.s3_model_key_path, "faiss_index")
-            )
+            file_name_for_faiss = os.path.basename(faiss_artifact.Faiss_path)
 
+            self.s3.upload_file(
+                from_file=faiss_artifact.Faiss_path,
+                to_file=f"{self.model_pusher_config.s3_model_key_path}/faiss_index/{file_name_for_faiss}",
+                bucket_name=self.model_pusher_config.bucket_name
+            )
 
             logger.info("Uploading mapping file...")
 
+            file_name_for_mapping=os.path.basename(embedding_artifact.mapping_path)
+            
             self.s3.upload_file(
                 from_file=embedding_artifact.mapping_path,
-                to_file=os.path.join(
-                    self.model_pusher_config.s3_model_key_path,
-                    "mapping.json"
-                ),
+                to_file=f"{self.model_pusher_config.s3_model_key_path}/{file_name_for_mapping}",
                 bucket_name=self.model_pusher_config.bucket_name
-                
             )
+            
 
             model_pusher_artifact = ModelPusherArtifact(
                 bucket_name=self.model_pusher_config.bucket_name,

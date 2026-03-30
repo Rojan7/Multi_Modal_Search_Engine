@@ -109,7 +109,7 @@ class TrainingPipeline:
         except Exception as e:
             raise MyException(e,sys)
     
-    def run_pipline(self):
+    def run_pipeline(self):
         data_extract_artifact=self.initiate_crawlling()
         modal_loader_artifact=self.intiate_model_loading(data_extract_artifact)
         trained_model_artifact=self.initiate_model_training(modal_loader_artifact,data_extract_artifact)

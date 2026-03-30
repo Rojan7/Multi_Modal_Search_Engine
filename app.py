@@ -1,6 +1,5 @@
 import io
-import sys
-from typing import Optional
+from pathlib import Path
 
 from fastapi import FastAPI, Request, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,7 +11,7 @@ from PIL import Image
 
 from src.constants import APP_HOST, APP_PORT
 from src.pipline.prediction_pipeline import MultimodalSearch
-from src.pipline.training_pipeline import TrainPipeline
+from src.pipline.training_pipeline import TrainingPipeline
 from src.exception import MyException
 from src.logger import logger
 
@@ -20,10 +19,11 @@ from src.logger import logger
 # -------------------------------
 # App Initialization
 # -------------------------------
-app = FastAPI()
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
+app=FastAPI()
+app.mount("/static",StaticFiles(directory="static"),name="static")
+templates=Jinja2Templates(directory="templates")
+
 
 
 # -------------------------------
@@ -41,13 +41,15 @@ app.add_middleware(
 # -------------------------------
 # Home Page
 # -------------------------------
-@app.get("/", tags=["UI"])
+@app.get("/", tags=["authentication"])
 async def index(request: Request):
+    """
+    Renders the main HTML form page for vehicle data input.
+    """
     return templates.TemplateResponse(
-        "mltimodal.html",
-        {"request": request, "results": None}
-    )
-
+    name="mltimodal.html",
+    context={"request": request, "context": "Rendering"}
+)
 
 # -------------------------------
 # TRAIN PIPELINE
@@ -56,7 +58,7 @@ async def index(request: Request):
 async def train():
     try:
         logger.info("Starting training pipeline...")
-        train_pipeline = TrainPipeline()
+        train_pipeline = TrainingPipeline()
         train_pipeline.run_pipeline()
 
         return Response("Training successful!")
@@ -99,7 +101,7 @@ async def predict_text(request: Request):
         )
 
 
-# -------------------------------
+# -----------------------------
 # IMAGE SEARCH (FORM / API)
 # -------------------------------
 @app.post("/image", tags=["Prediction"])

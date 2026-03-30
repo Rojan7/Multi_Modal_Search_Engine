@@ -62,3 +62,6 @@ MODEL_FILE_NAME = "Model_s"
 
 APP_HOST = "0.0.0.0"
 APP_PORT = 8000
+
+faiss_key = "Model_s/faiss.index"  
+mapping_key = "Model_s/mapping.json"  

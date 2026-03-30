@@ -45,5 +45,6 @@ class FAISSIndexBuilder:
                 status=True
             )
             logger.info("Index are succefully saved")
+  
         except Exception as e:
             raise MyException(e,sys)

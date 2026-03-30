@@ -6,7 +6,7 @@ from src.pipline.training_pipeline import TrainingPipeline
 
 if __name__ == "__main__":
     st=TrainingPipeline()
-    st.run_pipline()
+    st.run_pipeline()
 
 # from src.logger import logger
 # from src.exception import MyException
