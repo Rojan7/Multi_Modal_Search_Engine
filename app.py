@@ -47,9 +47,9 @@ async def index(request: Request):
     Renders the main HTML form page for vehicle data input.
     """
     return templates.TemplateResponse(
-    name="mltimodal.html",
-    context={"request": request, "context": "Rendering"}
-)
+        request=request,
+        name="mltimodal.html"
+    )
 
 # -------------------------------
 # TRAIN PIPELINE
@@ -79,8 +79,9 @@ async def predict_text(request: Request):
 
         if not query:
             return templates.TemplateResponse(
-                "mltimodal.html",
-                {"request": request, "results": [], "error": "Empty query"}
+                request=request,
+                name="mltimodal.html",
+                context={"results": [], "error": "Empty query"}
             )
 
         logger.info(f"Text query received: {query}")
@@ -89,15 +90,17 @@ async def predict_text(request: Request):
         results = model.predict(query)
 
         return templates.TemplateResponse(
-            "mltimodal.html",
-            {"request": request, "results": results}
+            request=request,
+            name="mltimodal.html",
+            context={"results": results}
         )
 
     except Exception as e:
         logger.error(f"Prediction error: {e}")
         return templates.TemplateResponse(
-            "mltimodal.html",
-            {"request": request, "error": str(e)}
+            request=request,
+            name="mltimodal.html",
+            context={"error": str(e)}
         )
 
 
@@ -134,7 +137,8 @@ async def api_text_search(query: str = Form(...)):
         return {"results": results}
 
     except Exception as e:
-        return {"error": str(e)}
+        logger.error(f"Text search error: {e}")
+        return {"error": str(e), "message": "Please train the model first by visiting /train endpoint if model files are missing."}
 
 
 # -------------------------------
@@ -152,11 +156,12 @@ async def api_image_search(file: UploadFile = File(...)):
         return {"results": results}
 
     except Exception as e:
-        return {"error": str(e)}
+        logger.error(f"Image search error: {e}")
+        return {"error": str(e), "message": "Please train the model first by visiting /train endpoint if model files are missing."}
 
 
 # -------------------------------
 # MAIN
 # -------------------------------
-if __name__ == "__main__":
+if __name__ == "_main_":
     app_run(app, host=APP_HOST, port=APP_PORT)

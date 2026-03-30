@@ -61,9 +61,10 @@ class Retriever:
         Downloads FAISS index from S3 into memory
         """
         s3 = boto3.client('s3')
-        obj = s3.get_object(Bucket=s3_bucket, Key=faiss_key)
-        index_bytes = obj['Body'].read()
-        index = faiss.read_index(io.BytesIO(index_bytes))
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.index') as tmp_file:
+            s3.download_file(s3_bucket, faiss_key, tmp_file.name)
+            index = faiss.read_index(tmp_file.name)
+            os.unlink(tmp_file.name)
         return index
 
     def _load_mapping_s3(self, s3_bucket, mapping_key):

@@ -48,7 +48,7 @@ class Proj1Estimator:
             # S3 paths
             model_folder_key = self.model_path.rstrip("/") + "/"
 
-            faiss_key = f"{self.model_path}/faiss_index/index.bin"
+            faiss_key = f"{self.model_path}/faiss_index/index"
             mapping_key = f"{self.model_path}/mapping.json"       # S3 key
 
             # Initialize Retriever with all 3 S3 inputs
