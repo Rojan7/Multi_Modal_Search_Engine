@@ -1,0 +1,245 @@
+"""
+Crawler module for Multimodal Search Engine
+- Text + Image crawling
+- Pluggable sources
+- Async, rate-limited
+- Metadata-first design
+"""
+
+import asyncio
+import aiohttp
+import hashlib
+from pathlib import Path
+from bs4 import BeautifulSoup
+from urllib.parse import urljoin, urlparse
+from pathlib import Path
+from src.constants import USER_AGENT, TIMEOUT, IMAGE_EXTENSIONS,MAX_CONCURRENT,base_urls,BLOCK_KEYWORDS, max_depth,headers
+from src.exception import MyException
+from src.logger import logger
+from src.entity.config_entity import data_extract_config
+from src.entity.artifact_entity import DataExtractorArtifact
+import sys
+
+
+
+
+def url_hash(url: str) -> str:
+    logger.debug("Entered the url_has method")
+    try:
+        return hashlib.sha256(url.encode()).hexdigest() #converts url into 64 hexa chars fix length so it is fast to compare
+    except Exception as e:
+        raise MyException(e,sys)
+
+
+def is_image(url: str) -> bool:
+    logger.debug("Entered the method is image")
+    try:
+        return Path(urlparse(url).path).suffix.lower() in IMAGE_EXTENSIONS
+    except Exception as e:
+        raise MyException(e,sys)
+
+
+class WebCrawler:
+    def __init__(self,data_extract_config:data_extract_config):
+        self.base_urls = base_urls
+        self.output_dir = Path(data_extract_config.data_extract_output_dir)
+        self.visited = set()
+        self.sem = asyncio.Semaphore(MAX_CONCURRENT)
+        self.max_depth=max_depth
+        self.data_extract_config=data_extract_config
+
+        
+
+    async def fetch(self, session: aiohttp.ClientSession, url: str):
+        logger.debug("Entered teh method fetch of class WebCrawler")
+        async with self.sem: #concept of semaphore to liimit the maximum requests in event loop
+
+            try:
+                logger.debug(f"Fetching from URL: {url}")
+                async with session.get(url, timeout=TIMEOUT) as resp:
+                    if resp.status == 200:
+                        return await resp.text(), resp.headers.get("Content-Type", "")
+                    else:
+                        logger.debug(f"Non-200 status {resp.status} for {url}")
+            except asyncio.TimeoutError as e:
+                logger.warning(f"time out error while fetching {url}")
+            except aiohttp.ClientError as e:
+                logger.warning(f"client error while fetching error {url}")
+            except Exception as e:
+                logger.error("Error while fethching url {url}")
+        return None, None
+
+    async def download_image_text(self, session, url,text_):
+        logger.debug("Entered download_image method of class WebCrawller")
+        async with self.sem:
+            try:
+                logger.debug(f"Downloading image: {url}")
+                async with session.get(url, timeout=TIMEOUT) as resp:
+                    if resp.status == 200:
+                        img_bytes = await resp.read()
+                        fname_img = url_hash(url) + Path(url).suffix
+                        fname_cap = url_hash(url) + ".txt"
+                        path_img = self.output_dir / "images" / fname_img
+                        path_caption=self.output_dir / "captions" / fname_cap
+                        path_img.parent.mkdir(parents=True,exist_ok=True)
+                        path_caption.parent.mkdir(parents=True,exist_ok=True)
+                        path_img.write_bytes(img_bytes)
+                        path_caption.write_text(text_ or "",encoding="utf-8")
+                        return {
+                            "url": url,
+                            "path_img": str(path_img),
+                            "path_caption":str(path_caption)
+                        }
+                    else:
+                        logger.debug(f"Image download failed ({resp.status}) for {url}")
+            except asyncio.TimeoutError as e:
+                raise MyException(e,sys)
+                
+            except aiohttp.ClientError as e:
+                raise MyException(e,sys)
+            except Exception as e:
+                raise MyException(e,sys)
+        return None
+
+    async def crawl_page(self, session, url,depth):
+
+        logger.debug("Entered crawl_pages method of class WebCrawller")
+        if url in self.visited or depth > max_depth:
+            logger.debug(f"Already visited: {url}")
+            return None, [], []
+
+        self.visited.add(url)
+        logger.debug(f"Crawling page: {url}")
+
+        try:
+            html, content_type = await self.fetch(session, url)
+            if not html or "text/html" not in content_type:
+                logger.debug(f"Skipping non-HTML or empty content: {url}")
+                return None, [], []
+
+            soup = BeautifulSoup(html, "html.parser")
+
+            # Extract page links
+            page_urls = [a.get('href') for a in soup.find_all('a') if a.get('href')]
+            page_urls = [urljoin(url, u) for u in page_urls]
+
+            # Extract full page text
+            #text = soup.get_text(" ", strip=True)
+            # text_meta = {
+            #     "url": url,
+            #     "text": text,
+            #     "type": "text",
+            # }
+
+      
+            images = []
+
+            for img in soup.find_all("img"):
+                src = img.get("src")
+                if not src:
+                    continue
+
+                img_url = urljoin(url, src)
+
+                if not is_image(img_url):
+                    continue
+
+                caption = None
+
+
+                parent_figure = img.find_parent("figure")
+                if parent_figure:
+                    figcaption = parent_figure.find("figcaption")
+                    if figcaption:
+                        caption = figcaption.get_text(" ", strip=True)
+
+
+                if not caption and img.get("alt"):
+                    caption = img.get("alt").strip()
+
+
+                if not caption and img.get("title"):
+                    caption = img.get("title").strip()
+
+                if not caption:
+                    next_tag = img.find_next_sibling()
+                    if next_tag and next_tag.name == "p":
+                        caption = next_tag.get_text(" ", strip=True)
+
+                # Filter junk captions
+                if caption and len(caption) > 5:
+                    images.append({
+                        "url": img_url,
+                        "caption": caption,
+                        "page_url": url,
+                        "type": "image"
+                    })
+                else:
+                    continue
+
+            return images, page_urls
+
+        except Exception as e:
+            raise MyException(e, sys)
+        
+    async def run(self)->DataExtractorArtifact:
+        logger.debug("Entered run method of class webcrawler")
+
+        try:
+            headers = {"User-Agent": USER_AGENT}
+
+            async with aiohttp.ClientSession(headers=headers) as session:
+
+                queue = [(url, 0) for url in self.base_urls]
+
+                all_images = []
+
+                while queue:
+
+                    url, depth = queue.pop(0)
+
+                    if url in self.visited:
+                        continue
+
+                    images, page_urls = await self.crawl_page(session, url, depth) # ya nira caption na vaako ni huna sakxa
+
+                    all_images.extend(images)
+
+                    # Add new links to queue
+                    for link in page_urls:
+                        parsed_seed = urlparse(self.base_urls[0]).netloc
+                        parsed_link = urlparse(link).netloc
+
+                        # Domain restriction
+                        if parsed_seed in parsed_link:
+                            queue.append((link, depth + 1))
+
+                # Download images
+                img_tasks = [self.download_image_text(session, img["url"],img["caption"]) for img in all_images]
+                img_meta = await asyncio.gather(*img_tasks)
+
+                final_result = {}
+
+                for meta, downloaded in zip(all_images, img_meta):
+                    if downloaded:
+                        local_path_img= downloaded["path_img"]
+                        local_path_cap= downloaded["path_caption"]
+                        page_url=meta["page_url"]
+                        final_result[(local_path_img,local_path_cap)]=page_url
+                        
+
+            return DataExtractorArtifact(
+                image_dir=str(self.output_dir / "images"),
+                caption_dir=str(self.output_dir / "captions"),
+                Img_to_url=final_result
+            )
+
+        except Exception as e:
+            raise MyException(e, sys)
+        
+        
+if __name__ == "__main__":
+    seed_urls = ["https://en.wikipedia.org/wiki/Kallang_Field"]
+    crawler = WebCrawler(seed_urls)
+    image_data = asyncio.run(crawler.run())
+    print(f" Images: {len(image_data)}")

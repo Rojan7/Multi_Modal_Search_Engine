@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "multimodal-search-engine"
+version = "0.0.1"
+description = "A project of Multimodal Search Engine"
+authors = [
+    { name = "Lalit Raman Mishra", email = "lalitramanmishra@gmail.com" }
+]
+dynamic = ["dependencies"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.dynamic]
+dependencies = { file = ["requirements.txt"] }
